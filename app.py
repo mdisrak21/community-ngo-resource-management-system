@@ -646,7 +646,109 @@ elif page == "Distributions":
     else:
 
         st.info("No distributions recorded.")
-        
+
+# =========================
+# Volunteers
+# =========================
+
+elif page == "Volunteers":
+
+    st.header("Volunteer Management")
+
+    tab1, tab2 = st.tabs([
+        "Add Volunteer",
+        "Volunteer List"
+    ])
+
+    with tab1:
+
+        with st.form("volunteer_form"):
+
+            name = st.text_input("Volunteer Name")
+
+            phone = st.text_input("Phone")
+
+            email = st.text_input("Email")
+
+            skills = st.text_area(
+                "Skills"
+            )
+
+            status = st.selectbox(
+                "Status",
+                ["Active", "Inactive"]
+            )
+
+            submit = st.form_submit_button(
+                "Add Volunteer"
+            )
+
+            if submit:
+
+                if not name.strip():
+
+                    st.error(
+                        "Volunteer name is required."
+                    )
+
+                else:
+
+                    from database import add_volunteer
+
+                    volunteer_id = add_volunteer(
+                        name.strip(),
+                        phone,
+                        email,
+                        skills,
+                        status
+                    )
+
+                    st.success(
+                        f"Volunteer added successfully! ID: {volunteer_id}"
+                    )
+
+    with tab2:
+
+        from database import get_volunteers
+
+        volunteers = get_volunteers()
+
+        if volunteers:
+
+            search = st.text_input(
+                "Search Volunteer"
+            )
+
+            if search:
+
+                search = search.lower()
+
+                volunteers = [
+                    v for v in volunteers
+                    if search in v[1].lower()
+                    or search in str(v[2]).lower()
+                    or search in str(v[3]).lower()
+                ]
+
+            st.dataframe(
+                [
+                    {
+                        "ID": v[0],
+                        "Name": v[1],
+                        "Phone": v[2],
+                        "Email": v[3],
+                        "Skills": v[4],
+                        "Status": v[5]
+                    }
+                    for v in volunteers
+                ],
+                use_container_width=True
+            )
+
+        else:
+
+            st.info("No volunteers found.")
+                   
 # =========================
 # Other Pages
 # =========================
