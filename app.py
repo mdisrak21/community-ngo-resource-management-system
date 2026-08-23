@@ -4,7 +4,9 @@ from database import (
     add_beneficiary,
     get_beneficiaries,
     update_beneficiary,
-    deactivate_beneficiary
+    deactivate_beneficiary,
+    add_project,
+    get_projects
 )
 
 st.set_page_config(
@@ -42,6 +44,7 @@ if page == "Dashboard":
     st.header("Dashboard")
 
     beneficiaries = get_beneficiaries()
+    projects = get_projects()
 
     col1, col2, col3 = st.columns(3)
 
@@ -50,22 +53,14 @@ if page == "Dashboard":
         len(beneficiaries)
     )
 
-    active_count = sum(
-        1 for b in beneficiaries if b[8] == "Active"
-    )
-
-    inactive_count = sum(
-        1 for b in beneficiaries if b[8] == "Inactive"
-    )
-
     col2.metric(
         "Active Beneficiaries",
-        active_count
+        sum(1 for b in beneficiaries if b[8] == "Active")
     )
 
     col3.metric(
-        "Inactive Beneficiaries",
-        inactive_count
+        "Total Projects",
+        len(projects)
     )
 
 
@@ -82,11 +77,6 @@ elif page == "Beneficiaries":
         "View Beneficiaries",
         "Manage"
     ])
-
-
-    # -------------------------
-    # Register
-    # -------------------------
 
     with tab1:
 
@@ -154,11 +144,6 @@ elif page == "Beneficiaries":
                         f"Beneficiary registered successfully! ID: {beneficiary_id}"
                     )
 
-
-    # -------------------------
-    # View
-    # -------------------------
-
     with tab2:
 
         st.subheader("Beneficiary List")
@@ -195,11 +180,8 @@ elif page == "Beneficiaries":
                     if b[8] == status_filter
                 ]
 
-            table_data = []
-
-            for b in filtered:
-
-                table_data.append({
+            table_data = [
+                {
                     "ID": b[0],
                     "Name": b[1],
                     "Age": b[2],
@@ -209,7 +191,9 @@ elif page == "Beneficiaries":
                     "Vulnerability": b[6],
                     "Registration Date": b[7],
                     "Status": b[8]
-                })
+                }
+                for b in filtered
+            ]
 
             st.dataframe(
                 table_data,
@@ -220,11 +204,6 @@ elif page == "Beneficiaries":
 
             st.info("No beneficiaries found.")
 
-
-    # -------------------------
-    # Manage
-    # -------------------------
-
     with tab3:
 
         st.subheader("Manage Beneficiary")
@@ -233,133 +212,232 @@ elif page == "Beneficiaries":
 
         if beneficiaries:
 
-            beneficiary_options = {
+            options = {
                 f"{b[0]} - {b[1]}": b
                 for b in beneficiaries
             }
 
             selected = st.selectbox(
                 "Select Beneficiary",
-                list(beneficiary_options.keys())
+                list(options.keys())
             )
 
-            beneficiary = beneficiary_options[selected]
-
-            st.write(
-                f"Current Status: **{beneficiary[8]}**"
-            )
+            b = options[selected]
 
             with st.form("update_form"):
 
-                new_name = st.text_input(
+                name = st.text_input(
                     "Name",
-                    value=beneficiary[1]
+                    value=b[1]
                 )
 
-                col1, col2 = st.columns(2)
+                age = st.number_input(
+                    "Age",
+                    min_value=0,
+                    max_value=120,
+                    value=b[2] or 18
+                )
 
-                with col1:
-
-                    new_age = st.number_input(
-                        "Age",
-                        min_value=0,
-                        max_value=120,
-                        value=beneficiary[2] or 18
-                    )
-
-                    new_gender = st.selectbox(
-                        "Gender",
-                        ["Male", "Female", "Other"],
-                        index=(
-                            ["Male", "Female", "Other"]
-                            .index(beneficiary[3])
-                            if beneficiary[3] in ["Male", "Female", "Other"]
-                            else 0
-                        )
-                    )
-
-                    new_phone = st.text_input(
-                        "Phone",
-                        value=beneficiary[4] or ""
-                    )
-
-                with col2:
-
-                    new_address = st.text_area(
-                        "Address",
-                        value=beneficiary[5] or ""
-                    )
-
-                    categories = [
-                        "Flood Affected",
-                        "Low Income",
-                        "Disability",
-                        "Elderly",
-                        "Child",
-                        "Other"
-                    ]
-
-                    category_index = (
-                        categories.index(beneficiary[6])
-                        if beneficiary[6] in categories
+                gender = st.selectbox(
+                    "Gender",
+                    ["Male", "Female", "Other"],
+                    index=(
+                        ["Male", "Female", "Other"].index(b[3])
+                        if b[3] in ["Male", "Female", "Other"]
                         else 0
                     )
+                )
 
-                    new_category = st.selectbox(
-                        "Vulnerability Category",
-                        categories,
-                        index=category_index
+                phone = st.text_input(
+                    "Phone",
+                    value=b[4] or ""
+                )
+
+                address = st.text_area(
+                    "Address",
+                    value=b[5] or ""
+                )
+
+                categories = [
+                    "Flood Affected",
+                    "Low Income",
+                    "Disability",
+                    "Elderly",
+                    "Child",
+                    "Other"
+                ]
+
+                category = st.selectbox(
+                    "Vulnerability Category",
+                    categories,
+                    index=(
+                        categories.index(b[6])
+                        if b[6] in categories
+                        else 0
                     )
+                )
 
-                    new_status = st.selectbox(
-                        "Status",
-                        ["Active", "Inactive"],
-                        index=(
-                            0
-                            if beneficiary[8] == "Active"
-                            else 1
-                        )
-                    )
+                status = st.selectbox(
+                    "Status",
+                    ["Active", "Inactive"],
+                    index=0 if b[8] == "Active" else 1
+                )
 
-                update_button = st.form_submit_button(
+                update = st.form_submit_button(
                     "Update Beneficiary"
                 )
 
-                if update_button:
+                if update:
 
                     update_beneficiary(
-                        beneficiary[0],
-                        new_name.strip(),
-                        new_age,
-                        new_gender,
-                        new_phone,
-                        new_address,
-                        new_category,
-                        new_status
+                        b[0],
+                        name,
+                        age,
+                        gender,
+                        phone,
+                        address,
+                        category,
+                        status
                     )
 
-                    st.success(
-                        "Beneficiary updated successfully!"
-                    )
+                    st.success("Updated successfully!")
 
                     st.rerun()
 
-            if beneficiary[8] == "Active":
+            if b[8] == "Active":
 
-                if st.button(
-                    "Deactivate Beneficiary",
-                    type="secondary"
-                ):
+                if st.button("Deactivate Beneficiary"):
 
-                    deactivate_beneficiary(
-                        beneficiary[0]
+                    deactivate_beneficiary(b[0])
+
+                    st.success("Beneficiary deactivated!")
+
+                    st.rerun()
+
+
+# =========================
+# Projects
+# =========================
+
+elif page == "Projects":
+
+    st.header("Project Management")
+
+    tab1, tab2 = st.tabs([
+        "Create Project",
+        "Project List"
+    ])
+
+    with tab1:
+
+        st.subheader("Create New Project")
+
+        with st.form("project_form"):
+
+            name = st.text_input("Project Name")
+
+            description = st.text_area(
+                "Project Description"
+            )
+
+            location = st.text_input(
+                "Location"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                start_date = st.date_input(
+                    "Start Date"
+                )
+
+                budget = st.number_input(
+                    "Budget",
+                    min_value=0.0,
+                    step=1000.0
+                )
+
+            with col2:
+
+                end_date = st.date_input(
+                    "End Date"
+                )
+
+                status = st.selectbox(
+                    "Status",
+                    [
+                        "Planned",
+                        "Active",
+                        "Completed",
+                        "Cancelled"
+                    ]
+                )
+
+            submit = st.form_submit_button(
+                "Create Project"
+            )
+
+            if submit:
+
+                if not name.strip():
+
+                    st.error(
+                        "Project name is required."
+                    )
+
+                elif end_date < start_date:
+
+                    st.error(
+                        "End date cannot be before start date."
+                    )
+
+                else:
+
+                    project_id = add_project(
+                        name.strip(),
+                        description,
+                        location,
+                        start_date.isoformat(),
+                        end_date.isoformat(),
+                        budget,
+                        status
                     )
 
                     st.success(
-                        "Beneficiary deactivated successfully!"
+                        f"Project created successfully! ID: {project_id}"
                     )
 
-                    st.rerun()
+    with tab2:
+
+        st.subheader("Project List")
+
+        projects = get_projects()
+
+        if projects:
+
+            project_data = [
+                {
+                    "ID": p[0],
+                    "Name": p[1],
+                    "Description": p[2],
+                    "Location": p[3],
+                    "Start Date": p[4],
+                    "End Date": p[5],
+                    "Budget": p[6],
+                    "Status": p[7]
+                }
+                for p in projects
+            ]
+
+            st.dataframe(
+                project_data,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info("No projects found.")
 
 
 # =========================
@@ -371,5 +449,5 @@ else:
     st.header(page)
 
     st.info(
-        f"{page} module will be developed in the next phases."
+        f"{page} module will be developed in a future phase."
     )
