@@ -8,7 +8,7 @@ An interactive web-based management system designed for community organizations 
 
 ## 📸 Dashboard Preview
 
-The application provides an interactive dashboard for monitoring beneficiaries, projects, resources, distributions, and volunteers.
+![Community & NGO Resource Management System Dashboard](dashboard.png)
 
 ## 📌 Project Overview
 
