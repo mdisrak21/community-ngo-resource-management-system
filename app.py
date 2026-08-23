@@ -1,5 +1,7 @@
 import streamlit as st
 from database import (
+    add_distribution,
+    get_distributions,
     create_tables,
     add_beneficiary,
     get_beneficiaries,
@@ -515,7 +517,136 @@ elif page == "Resources":
 
             st.info("No resources found.")
 
+# =========================
+# Distributions
+# =========================
 
+elif page == "Distributions":
+
+    st.header("Resource Distribution")
+
+    beneficiaries = [
+        b for b in get_beneficiaries()
+        if b[8] == "Active"
+    ]
+
+    projects = get_projects()
+    resources = [
+        r for r in get_resources()
+        if r[4] > 0
+    ]
+
+    if not beneficiaries:
+
+        st.warning("No active beneficiaries available.")
+
+    elif not projects:
+
+        st.warning("No projects available.")
+
+    elif not resources:
+
+        st.warning("No resources with available stock.")
+
+    else:
+
+        with st.form("distribution_form"):
+
+            beneficiary_options = {
+                f"{b[0]} - {b[1]}": b[0]
+                for b in beneficiaries
+            }
+
+            project_options = {
+                f"{p[0]} - {p[1]}": p[0]
+                for p in projects
+            }
+
+            resource_options = {
+                f"{r[0]} - {r[1]} ({r[4]} {r[3]} available)": r
+                for r in resources
+            }
+
+            selected_beneficiary = st.selectbox(
+                "Beneficiary",
+                list(beneficiary_options.keys())
+            )
+
+            selected_project = st.selectbox(
+                "Project",
+                list(project_options.keys())
+            )
+
+            selected_resource = st.selectbox(
+                "Resource",
+                list(resource_options.keys())
+            )
+
+            resource = resource_options[selected_resource]
+
+            quantity = st.number_input(
+                f"Quantity ({resource[3]})",
+                min_value=0.1,
+                max_value=float(resource[4]),
+                value=1.0,
+                step=1.0
+            )
+
+            distribution_date = st.date_input(
+                "Distribution Date"
+            )
+
+            location = st.text_input(
+                "Distribution Location"
+            )
+
+            submit = st.form_submit_button(
+                "Distribute Resource"
+            )
+
+            if submit:
+
+                distribution_id = add_distribution(
+                    beneficiary_options[selected_beneficiary],
+                    project_options[selected_project],
+                    resource[0],
+                    quantity,
+                    distribution_date.isoformat(),
+                    location
+                )
+
+                st.success(
+                    f"Distribution recorded! ID: {distribution_id}"
+                )
+
+    st.divider()
+
+    st.subheader("Distribution History")
+
+    distributions = get_distributions()
+
+    if distributions:
+
+        st.dataframe(
+            [
+                {
+                    "ID": d[0],
+                    "Beneficiary": d[1],
+                    "Project": d[2],
+                    "Resource": d[3],
+                    "Quantity": d[4],
+                    "Date": d[5],
+                    "Location": d[6]
+                }
+                for d in distributions
+            ],
+            use_container_width=True
+        )
+
+    else:
+
+        st.info("No distributions recorded.")
+        
 # =========================
 # Other Pages
 # =========================

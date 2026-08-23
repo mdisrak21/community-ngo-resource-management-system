@@ -450,7 +450,79 @@ def get_volunteers():
 # -----------------------------
 # Initialize Database
 # -----------------------------
+def add_distribution(
+    beneficiary_id,
+    project_id,
+    resource_id,
+    quantity,
+    distribution_date,
+    location
+):
+    connection = get_connection()
 
+    cursor = connection.execute("""
+        INSERT INTO distributions (
+            beneficiary_id,
+            project_id,
+            resource_id,
+            quantity,
+            distribution_date,
+            location
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        beneficiary_id,
+        project_id,
+        resource_id,
+        quantity,
+        distribution_date,
+        location
+    ))
+
+    distribution_id = cursor.lastrowid
+
+    connection.execute("""
+        UPDATE resources
+        SET quantity = quantity - ?
+        WHERE id = ?
+    """, (
+        quantity,
+        resource_id
+    ))
+
+    connection.commit()
+    connection.close()
+
+    return distribution_id
+
+
+def get_distributions():
+    connection = get_connection()
+
+    cursor = connection.execute("""
+        SELECT
+            d.id,
+            b.name,
+            p.name,
+            r.name,
+            d.quantity,
+            d.distribution_date,
+            d.location
+        FROM distributions d
+        JOIN beneficiaries b
+            ON d.beneficiary_id = b.id
+        JOIN projects p
+            ON d.project_id = p.id
+        JOIN resources r
+            ON d.resource_id = r.id
+        ORDER BY d.id DESC
+    """)
+
+    distributions = cursor.fetchall()
+
+    connection.close()
+
+    return distributions
 if __name__ == "__main__":
     create_tables()
     print("Database initialized successfully!")
