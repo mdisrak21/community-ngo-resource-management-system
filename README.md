@@ -16,27 +16,21 @@ This project is a Community and NGO Resource Management System developed to demo
 
 The system provides a centralized platform for managing beneficiary information, development projects, available resources, resource distributions, and volunteers.
 
-It is designed with the workflow of development organizations such as NGOs, humanitarian organizations, and community-based organizations in mind.
-
 ## 🎯 Objectives
 
-The main objectives of this project are to:
-
-- Manage beneficiary information efficiently
-- Track NGO projects and activities
+- Manage beneficiary information
+- Track NGO projects
 - Maintain resource inventory
 - Record resource distributions
 - Manage volunteers
-- Provide basic operational statistics
+- Provide operational statistics
 - Demonstrate practical database management
-- Apply software engineering concepts to development-sector operations
 
 ## 📊 Key Features
 
 - 👥 Beneficiary registration and management
 - 🔎 Beneficiary search and filtering
 - ✏️ Beneficiary information update
-- 📌 Beneficiary status management
 - 📋 Project management
 - 📦 Resource inventory management
 - 🤝 Resource distribution tracking
@@ -55,16 +49,15 @@ The main objectives of this project are to:
 
 ## 🗄️ Database
 
-The application uses SQLite as the database system.
+The system uses SQLite for data storage.
 
-Main database entities include:
+Main entities:
 
 - Beneficiaries
 - Projects
 - Resources
 - Distributions
 - Volunteers
-- Volunteer Assignments
 
 ## 🔄 System Workflow
 
