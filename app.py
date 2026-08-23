@@ -6,7 +6,9 @@ from database import (
     update_beneficiary,
     deactivate_beneficiary,
     add_project,
-    get_projects
+    get_projects,
+    add_resource,
+    get_resources
 )
 
 st.set_page_config(
@@ -45,23 +47,13 @@ if page == "Dashboard":
 
     beneficiaries = get_beneficiaries()
     projects = get_projects()
+    resources = get_resources()
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "Total Beneficiaries",
-        len(beneficiaries)
-    )
-
-    col2.metric(
-        "Active Beneficiaries",
-        sum(1 for b in beneficiaries if b[8] == "Active")
-    )
-
-    col3.metric(
-        "Total Projects",
-        len(projects)
-    )
+    col1.metric("Total Beneficiaries", len(beneficiaries))
+    col2.metric("Total Projects", len(projects))
+    col3.metric("Resource Types", len(resources))
 
 
 # =========================
@@ -79,8 +71,6 @@ elif page == "Beneficiaries":
     ])
 
     with tab1:
-
-        st.subheader("Register New Beneficiary")
 
         with st.form("beneficiary_form"):
 
@@ -104,7 +94,6 @@ elif page == "Beneficiaries":
                 phone = st.text_input("Phone")
 
             with col2:
-
                 address = st.text_area("Address")
 
                 vulnerability_category = st.selectbox(
@@ -119,11 +108,11 @@ elif page == "Beneficiaries":
                     ]
                 )
 
-            submitted = st.form_submit_button(
+            submit = st.form_submit_button(
                 "Register Beneficiary"
             )
 
-            if submitted:
+            if submit:
 
                 if not name.strip():
 
@@ -141,46 +130,43 @@ elif page == "Beneficiaries":
                     )
 
                     st.success(
-                        f"Beneficiary registered successfully! ID: {beneficiary_id}"
+                        f"Beneficiary registered! ID: {beneficiary_id}"
                     )
 
     with tab2:
 
-        st.subheader("Beneficiary List")
-
         beneficiaries = get_beneficiaries()
 
-        if beneficiaries:
+        search = st.text_input(
+            "Search by name or phone"
+        )
 
-            search = st.text_input(
-                "Search by name or phone"
-            )
+        status_filter = st.selectbox(
+            "Status",
+            ["All", "Active", "Inactive"]
+        )
 
-            status_filter = st.selectbox(
-                "Filter by Status",
-                ["All", "Active", "Inactive"]
-            )
+        filtered = beneficiaries
 
-            filtered = beneficiaries
+        if search:
 
-            if search:
+            search = search.lower()
 
-                search = search.lower()
+            filtered = [
+                b for b in filtered
+                if search in str(b[1]).lower()
+                or search in str(b[4]).lower()
+            ]
 
-                filtered = [
-                    b for b in filtered
-                    if search in str(b[1]).lower()
-                    or search in str(b[4]).lower()
-                ]
+        if status_filter != "All":
 
-            if status_filter != "All":
+            filtered = [
+                b for b in filtered
+                if b[8] == status_filter
+            ]
 
-                filtered = [
-                    b for b in filtered
-                    if b[8] == status_filter
-                ]
-
-            table_data = [
+        st.dataframe(
+            [
                 {
                     "ID": b[0],
                     "Name": b[1],
@@ -189,24 +175,15 @@ elif page == "Beneficiaries":
                     "Phone": b[4],
                     "Address": b[5],
                     "Vulnerability": b[6],
-                    "Registration Date": b[7],
+                    "Date": b[7],
                     "Status": b[8]
                 }
                 for b in filtered
-            ]
-
-            st.dataframe(
-                table_data,
-                use_container_width=True
-            )
-
-        else:
-
-            st.info("No beneficiaries found.")
+            ],
+            use_container_width=True
+        )
 
     with tab3:
-
-        st.subheader("Manage Beneficiary")
 
         beneficiaries = get_beneficiaries()
 
@@ -224,7 +201,7 @@ elif page == "Beneficiaries":
 
             b = options[selected]
 
-            with st.form("update_form"):
+            with st.form("update_beneficiary"):
 
                 name = st.text_input(
                     "Name",
@@ -310,7 +287,9 @@ elif page == "Beneficiaries":
 
                     deactivate_beneficiary(b[0])
 
-                    st.success("Beneficiary deactivated!")
+                    st.success(
+                        "Beneficiary deactivated!"
+                    )
 
                     st.rerun()
 
@@ -330,14 +309,14 @@ elif page == "Projects":
 
     with tab1:
 
-        st.subheader("Create New Project")
-
         with st.form("project_form"):
 
-            name = st.text_input("Project Name")
+            name = st.text_input(
+                "Project Name"
+            )
 
             description = st.text_area(
-                "Project Description"
+                "Description"
             )
 
             location = st.text_input(
@@ -405,39 +384,136 @@ elif page == "Projects":
                     )
 
                     st.success(
-                        f"Project created successfully! ID: {project_id}"
+                        f"Project created! ID: {project_id}"
                     )
 
     with tab2:
 
-        st.subheader("Project List")
-
         projects = get_projects()
 
-        if projects:
-
-            project_data = [
+        st.dataframe(
+            [
                 {
                     "ID": p[0],
                     "Name": p[1],
                     "Description": p[2],
                     "Location": p[3],
-                    "Start Date": p[4],
-                    "End Date": p[5],
+                    "Start": p[4],
+                    "End": p[5],
                     "Budget": p[6],
                     "Status": p[7]
                 }
                 for p in projects
-            ]
+            ],
+            use_container_width=True
+        )
+
+
+# =========================
+# Resources
+# =========================
+
+elif page == "Resources":
+
+    st.header("Resource Management")
+
+    tab1, tab2 = st.tabs([
+        "Add Resource",
+        "Inventory"
+    ])
+
+    with tab1:
+
+        with st.form("resource_form"):
+
+            name = st.text_input(
+                "Resource Name"
+            )
+
+            category = st.selectbox(
+                "Category",
+                [
+                    "Food",
+                    "Water",
+                    "Medicine",
+                    "Clothing",
+                    "Shelter",
+                    "Hygiene",
+                    "Other"
+                ]
+            )
+
+            unit = st.selectbox(
+                "Unit",
+                [
+                    "kg",
+                    "liter",
+                    "piece",
+                    "box",
+                    "packet"
+                ]
+            )
+
+            quantity = st.number_input(
+                "Quantity",
+                min_value=0.0,
+                step=1.0
+            )
+
+            submit = st.form_submit_button(
+                "Add Resource"
+            )
+
+            if submit:
+
+                if not name.strip():
+
+                    st.error(
+                        "Resource name is required."
+                    )
+
+                elif quantity <= 0:
+
+                    st.error(
+                        "Quantity must be greater than 0."
+                    )
+
+                else:
+
+                    resource_id = add_resource(
+                        name.strip(),
+                        category,
+                        unit,
+                        quantity
+                    )
+
+                    st.success(
+                        f"Resource added! ID: {resource_id}"
+                    )
+
+    with tab2:
+
+        resources = get_resources()
+
+        if resources:
 
             st.dataframe(
-                project_data,
+                [
+                    {
+                        "ID": r[0],
+                        "Resource": r[1],
+                        "Category": r[2],
+                        "Unit": r[3],
+                        "Quantity": r[4]
+                    }
+                    for r in resources
+                ],
                 use_container_width=True
             )
 
         else:
 
-            st.info("No projects found.")
+            st.info("No resources found.")
 
 
 # =========================
